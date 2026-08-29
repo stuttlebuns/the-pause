@@ -142,10 +142,20 @@
 <div class="app">
   <div class="top-links">
     <button class="top-link" data-nav="log">history</button>
+    <button class="top-link" data-nav="onboarding">about</button>
     <button class="top-link" data-nav="home">start over</button>
   </div>
 
   <div class="screens">
+
+    <div class="screen" id="s-onboarding">
+      <p class="eyebrow">Welcome</p>
+      <h1>A tool to catch a spiral before it grows.</h1>
+      <p class="muted">Pick what's happening, get a few grounding steps, and note whether you caught it or it got away from you. Over time, you'll have a real record of the pattern easing — something to point to on the hard days.</p>
+      <p class="muted">Everything you write stays on this device. Nothing is sent anywhere unless you choose to share or back it up yourself.</p>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="onboarding-continue">Get started</button>
+    </div>
 
     <div class="screen active" id="s-home">
       <p class="eyebrow">Right now</p>
@@ -394,6 +404,16 @@ function renderHistory(){
 }
 
 renderHomeStreak();
+
+if(!localStorage.getItem('seen-onboarding-pause')){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-onboarding').classList.add('active');
+}
+
+document.getElementById('onboarding-continue').addEventListener('click', () => {
+  localStorage.setItem('seen-onboarding-pause', 'true');
+  nav('home');
+});
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(() => {});
