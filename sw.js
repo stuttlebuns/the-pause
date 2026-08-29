@@ -1,4 +1,4 @@
-const CACHE_NAME = 'the-pause-v7';
+const CACHE_NAME = 'the-keep-v8';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', event => {
