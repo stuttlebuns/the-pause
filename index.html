@@ -50,7 +50,7 @@
     box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5);
   }
 
-  .top-links{ position:absolute; top:20px; right:20px; display:flex; gap:14px; }
+  .top-links{ display:flex; justify-content:flex-end; gap:14px; margin-bottom:14px; }
   .top-link{
     font-family:'Space Mono', monospace; font-size:11px; color: var(--text-muted);
     cursor:pointer; letter-spacing:0.05em; background:none; border:none; padding:0;
@@ -110,9 +110,9 @@
   .log-field label{ display:block; font-family:'Space Mono', monospace; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color: var(--text-muted); margin-bottom:6px; }
 
   .pill{
-    display:inline-block; font-family:'Space Mono', monospace; font-size:11px;
-    color: var(--gold); border:1px solid var(--gold); border-radius:999px;
-    padding:3px 10px; margin-bottom:4px; letter-spacing:0.04em;
+    display:block; font-family:'Space Mono', monospace; font-size:11px;
+    color: var(--gold); text-transform:uppercase;
+    margin:0 0 6px; letter-spacing:0.14em;
   }
 
   .stat-row{ display:flex; gap:10px; margin-bottom:18px; }
@@ -160,10 +160,10 @@
     </div>
 
     <div class="screen" id="s-log">
-      <p class="pill" id="log-pill">Flooding</p>
-      <h1>What's going on?</h1>
-      <div class="log-field"><label>What's happening right now</label><textarea id="log-what" placeholder="e.g. mid-conversation about..., what's happening right now..."></textarea></div>
-      <div class="log-field"><label>What I'm feeling / telling myself</label><textarea id="log-told" placeholder="e.g. they're done with me, this always happens..."></textarea></div>
+      <h1 id="log-pill">Flooding</h1>
+      <p class="muted" id="log-inspire">Whatever's happening, you can slow it down.</p>
+      <div class="log-field"><label>What events are taking place?</label><textarea id="log-what" placeholder="Type here."></textarea></div>
+      <div class="log-field"><label>What I'm feeling / telling myself</label><textarea id="log-told" placeholder="Type here."></textarea></div>
       <div class="spacer"></div>
       <button class="btn btn-primary" data-nav="guide">Next</button>
     </div>
@@ -173,10 +173,10 @@
       <h1>Right now, try this.</h1>
       <ul class="step-list" id="guide-steps"></ul>
       <div class="spacer"></div>
-      <p class="log-field"><label>Did you catch it, or did it reach her?</label></p>
+      <p class="log-field"><label>Did you catch it, or did it get out?</label></p>
       <div class="toggle-row">
         <button class="opt" data-outcome="caught">Caught it internally</button>
-        <button class="opt" data-outcome="reached">Reached her</button>
+        <button class="opt" data-outcome="reached">Reached out</button>
       </div>
       <button class="btn btn-primary" id="save-entry">Save and done</button>
     </div>
@@ -200,6 +200,7 @@
 const CATEGORIES = {
   flooding: {
     label: 'Flooding',
+    inspire: "Whatever's happening, you can slow it down.",
     steps: [
       "Say a pause word out loud — to whoever's there, no explanation needed. \"I need 20.\"",
       "Leave the room. Body first, not the argument.",
@@ -209,6 +210,7 @@ const CATEGORIES = {
   },
   hyper: {
     label: 'Hypervigilance',
+    inspire: "Not every signal is real. You get to check before you react.",
     steps: [
       "Say it, even just in your head: \"This is the hypervigilance, not necessarily the facts.\"",
       "What's the actual neutral fact, separate from the story you added on top?",
@@ -218,6 +220,7 @@ const CATEGORIES = {
   },
   check: {
     label: 'Reassurance-seeking',
+    inspire: "You already know more than the urge is telling you.",
     steps: [
       "The check won't actually fix this — it'll quiet the urge for a minute and the loop restarts.",
       "Ask yourself: has checking ever actually made this feeling go away for good?",
@@ -226,6 +229,7 @@ const CATEGORIES = {
   },
   rumination: {
     label: 'Rumination',
+    inspire: "This doesn't have to be solved right now.",
     steps: [
       "It loses some of its grip once it's not just circling internally in your head.",
       "This isn't your worry window. That's a scheduled 15 min/day, separate from this moment.",
@@ -234,6 +238,7 @@ const CATEGORIES = {
   },
   talk: {
     label: 'The big one',
+    inspire: "Waiting costs you nothing. Sending it now might.",
     steps: [
       "This is the moment the whole pattern is built around — the urge to say it out loud to someone right now, while it's this loud. That urgency is the pattern, not proof it's necessary.",
       "Don't send anything yet. Let it sit.",
@@ -264,6 +269,7 @@ document.querySelectorAll('[data-open-log]').forEach(el => {
     document.getElementById('log-what').value = '';
     document.getElementById('log-told').value = '';
     document.getElementById('log-pill').textContent = CATEGORIES[currentCategory].label;
+    document.getElementById('log-inspire').textContent = CATEGORIES[currentCategory].inspire;
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('s-log').classList.add('active');
   });
@@ -295,7 +301,7 @@ document.querySelectorAll('[data-outcome]').forEach(el => {
 
 document.getElementById('save-entry').addEventListener('click', () => {
   if(!currentOutcome){
-    alert('Pick whether you caught it or it reached her first.');
+    alert('Pick whether you caught it or acted on it first.');
     return;
   }
   const entries = JSON.parse(localStorage.getItem('spiral-entries') || '[]');
@@ -369,7 +375,7 @@ function renderHistory(){
     div.innerHTML = `
       <div class="entry-top">
         <span class="entry-date">${dateStr}</span>
-        <span class="entry-outcome ${e.outcome}">${e.outcome === 'caught' ? 'caught' : 'reached her'}</span>
+        <span class="entry-outcome ${e.outcome}">${e.outcome === 'caught' ? 'caught' : 'reached out'}</span>
       </div>
       <div class="entry-cat">${CATEGORIES[e.category] ? CATEGORIES[e.category].label : e.category}</div>
       <div class="entry-text">${(e.what || '').slice(0,120)}</div>
