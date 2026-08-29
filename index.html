@@ -94,7 +94,7 @@
   .toggle-row .opt{ flex:1; text-align:center; padding:12px 8px; font-size:13px; }
   .toggle-row .opt.selected{ border-color: var(--sage); background: var(--sage-dim); color:#0F1B18; }
 
-  .outcome-box{ background: var(--surface-raised); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:16px; }
+  .outcome-box{ background: var(--surface-raised); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:14px; margin-bottom:16px; }
   .outcome-box .log-field{ margin-bottom:12px; }
   .outcome-box .log-field label{ text-align:center; display:block; }
 
@@ -126,6 +126,13 @@
 
   .entry-list{ display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1; }
   .entry{ background: var(--surface-raised); border-radius:10px; padding:12px 14px; }
+  .entry summary{ list-style:none; cursor:pointer; }
+  .entry summary::-webkit-details-marker{ display:none; }
+  .entry summary::marker{ content:''; }
+  .chevron{ display:inline-block; color: var(--text-muted); font-size:14px; transition: transform .15s; }
+  .entry[open] .chevron{ transform: rotate(90deg); }
+  .entry-body{ margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
+  .entry-preview{ font-size:13px; color: var(--text-muted); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .entry-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
   .entry-date{ font-family:'Space Mono', monospace; font-size:11px; color: var(--text-muted); }
   .entry-outcome{ font-family:'Space Mono', monospace; font-size:10px; padding:2px 8px; border-radius:999px; }
@@ -141,7 +148,7 @@
     border:1px solid var(--gold); border-radius:999px; padding:2px 8px;
   }
 
-  .action-row{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .action-row{ display:flex; flex-direction:column; gap:8px; }
   .action-row .btn{ font-size:13px; padding:10px 16px; }
 
   @media (max-width:400px){ .app{ padding:24px 18px 20px; } h1{ font-size:23px; } }
@@ -221,11 +228,13 @@
         <div class="stat-card"><div class="stat-label">This week</div><div class="stat-value" id="stat-week">0 caught</div></div>
       </div>
       <div class="entry-list" id="entry-list"></div>
-      <div class="action-row">
-        <button class="btn btn-secondary" id="share-record">Share the record</button>
-        <button class="btn btn-secondary" id="download-backup">Download backup</button>
-        <button class="btn btn-secondary" id="restore-backup">Restore from backup</button>
-        <input type="file" id="restore-file-input" accept="application/json" style="display:none;">
+      <div class="outcome-box">
+        <div class="action-row">
+          <button class="btn btn-secondary" id="share-record">Share the record</button>
+          <button class="btn btn-secondary" id="download-backup">Download backup</button>
+          <button class="btn btn-secondary" id="restore-backup">Restore from backup</button>
+          <input type="file" id="restore-file-input" accept="application/json" style="display:none;">
+        </div>
       </div>
       <div class="spacer"></div>
       <button class="btn btn-secondary" data-nav="home">Back</button>
@@ -321,16 +330,30 @@ function renderKeepEntries(){
     return;
   }
   entries.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
-    const div = document.createElement('div');
-    div.className = 'entry';
     const dateStr = new Date(e.date).toLocaleDateString('en-US', {month:'short', day:'numeric'});
-    div.innerHTML = `
+    const hasTags = !!(e.tags && e.tags.length);
+    const summaryHtml = `
       <div class="entry-top">
         <span class="entry-date">${dateStr}</span>
+        ${hasTags ? '<span class="chevron">&#8250;</span>' : ''}
       </div>
-      <div class="entry-text">${(e.what || '').slice(0,150)}</div>
-      ${e.tags && e.tags.length ? `<div class="entry-tags">${e.tags.map(t => `<span class="entry-tag">${tagLabels[t] || t}</span>`).join('')}</div>` : ''}
+      <div class="entry-text">${(e.what || '').slice(0,300)}</div>
     `;
+    let div;
+    if(hasTags){
+      div = document.createElement('details');
+      div.className = 'entry';
+      div.innerHTML = `
+        <summary class="entry-summary">${summaryHtml}</summary>
+        <div class="entry-body">
+          <div class="entry-tags">${e.tags.map(t => `<span class="entry-tag">${tagLabels[t] || t}</span>`).join('')}</div>
+        </div>
+      `;
+    } else {
+      div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML = summaryHtml;
+    }
     list.appendChild(div);
   });
 }
@@ -438,17 +461,34 @@ function renderHistory(){
     return;
   }
   entries.forEach(e => {
-    const div = document.createElement('div');
-    div.className = 'entry';
     const dateStr = new Date(e.date).toLocaleDateString('en-US', {month:'short', day:'numeric'});
-    div.innerHTML = `
+    const hasSecondField = !!(e.told && e.told.trim());
+    const summaryHtml = `
       <div class="entry-top">
         <span class="entry-date">${dateStr}</span>
-        <span class="entry-outcome ${e.outcome}">${e.outcome === 'caught' ? 'caught' : 'acted on it'}</span>
+        <span style="display:flex; align-items:center; gap:8px;">
+          <span class="entry-outcome ${e.outcome}">${e.outcome === 'caught' ? 'caught' : 'acted on it'}</span>
+          ${hasSecondField ? '<span class="chevron">&#8250;</span>' : ''}
+        </span>
       </div>
       <div class="entry-cat">${CATEGORIES[e.category] ? CATEGORIES[e.category].label : e.category}</div>
-      <div class="entry-text">${(e.what || '').slice(0,120)}</div>
+      <div class="entry-text">${(e.what || '').slice(0,300)}</div>
     `;
+    let div;
+    if(hasSecondField){
+      div = document.createElement('details');
+      div.className = 'entry';
+      div.innerHTML = `
+        <summary class="entry-summary">${summaryHtml}</summary>
+        <div class="entry-body">
+          <div class="entry-felt">Telling myself: ${e.told.slice(0,300)}</div>
+        </div>
+      `;
+    } else {
+      div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML = summaryHtml;
+    }
     list.appendChild(div);
   });
 }
