@@ -50,7 +50,7 @@
     box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5);
   }
 
-  .top-links{ display:flex; justify-content:flex-end; gap:14px; margin-bottom:14px; }
+  .top-links{ display:flex; justify-content:space-between; margin-bottom:14px; }
   .top-link{
     font-family:'Space Mono', monospace; font-size:11px; color: var(--text-muted);
     cursor:pointer; letter-spacing:0.05em; background:none; border:none; padding:0;
@@ -131,6 +131,12 @@
   .entry-text{ font-size:13px; color: var(--text-muted); }
   .empty-note{ text-align:center; color: var(--text-muted); font-size:14px; margin-top:40px; }
 
+  .entry-tags{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .entry-tag{
+    font-family:'Space Mono', monospace; font-size:10px; color: var(--gold);
+    border:1px solid var(--gold); border-radius:999px; padding:2px 8px;
+  }
+
   .action-row{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
   .action-row .btn{ font-size:13px; padding:10px 16px; }
 
@@ -158,18 +164,16 @@
     </div>
 
     <div class="screen active" id="s-home">
-      <p class="eyebrow">Right now</p>
       <h1>What's happening?</h1>
       <p class="muted">Pick whatever's closest.</p>
       <div class="options">
-        <button class="opt" data-open-log="flooding"><span class="opt-label">I'm flooding</span></button>
-        <button class="opt" data-open-log="hyper"><span class="opt-label">I'm hypervigilant</span></button>
-        <button class="opt" data-open-log="check"><span class="opt-label">I'm seeking reassurance</span></button>
-        <button class="opt" data-open-log="rumination"><span class="opt-label">I'm ruminating</span></button>
-        <button class="opt" data-open-log="talk"><span class="opt-label">I want to get it out</span></button>
+        <button class="opt" data-open-log="flooding"><span class="opt-label">Flooding with emotions</span></button>
+        <button class="opt" data-open-log="hyper"><span class="opt-label">Hypervigilance to abandonment</span></button>
+        <button class="opt" data-open-log="check"><span class="opt-label">Seeking reassurance</span></button>
+        <button class="opt" data-open-log="rumination"><span class="opt-label">Ruminating on events</span></button>
+        <button class="opt" data-open-log="talk"><span class="opt-label">Wanting to get it out</span></button>
       </div>
       <div class="spacer"></div>
-      <div id="home-streak"></div>
     </div>
 
     <div class="screen" id="s-log">
@@ -185,6 +189,7 @@
       <p class="eyebrow" id="guide-eyebrow">Flooding</p>
       <h1>Right now, try this.</h1>
       <ul class="step-list" id="guide-steps"></ul>
+      <button class="btn btn-secondary" data-nav="keep">See kept moments</button>
       <div class="spacer"></div>
       <p class="log-field"><label>Did you catch it, or did it get out?</label></p>
       <div class="toggle-row">
@@ -192,6 +197,14 @@
         <button class="opt" data-outcome="reached">Reached out</button>
       </div>
       <button class="btn btn-primary" id="save-entry">Save and done</button>
+    </div>
+
+    <div class="screen" id="s-keep">
+      <p class="eyebrow">From The Keep</p>
+      <h1>Moments to remember</h1>
+      <div class="entry-list" id="keep-entry-list"></div>
+      <div class="spacer"></div>
+      <button class="btn btn-secondary" data-nav="guide">Back</button>
     </div>
 
     <div class="screen" id="s-log-history">
@@ -218,7 +231,7 @@
 <script>
 const CATEGORIES = {
   flooding: {
-    label: 'Flooding',
+    label: 'Flooding with emotions',
     inspire: "Whatever's happening, you can slow it down.",
     steps: [
       "Say a pause word out loud — to whoever's there, no explanation needed. \"I need 20.\"",
@@ -228,7 +241,7 @@ const CATEGORIES = {
     ]
   },
   hyper: {
-    label: 'Hypervigilance',
+    label: 'Hypervigilance to abandonment',
     inspire: "Not every signal is real. You get to check before you react.",
     steps: [
       "Say it, even just in your head: \"This is the hypervigilance, not necessarily the facts.\"",
@@ -238,7 +251,7 @@ const CATEGORIES = {
     ]
   },
   check: {
-    label: 'Reassurance-seeking',
+    label: 'Seeking reassurance',
     inspire: "You already know more than the urge is telling you.",
     steps: [
       "The check won't actually fix this — it'll quiet the urge for a minute and the loop restarts.",
@@ -247,7 +260,7 @@ const CATEGORIES = {
     ]
   },
   rumination: {
-    label: 'Rumination',
+    label: 'Ruminating on events',
     inspire: "This doesn't have to be solved right now.",
     steps: [
       "It loses some of its grip once it's not just circling internally in your head.",
@@ -256,7 +269,7 @@ const CATEGORIES = {
     ]
   },
   talk: {
-    label: 'The big one',
+    label: 'Wanting to get it out',
     inspire: "Waiting costs you nothing. Sending it now might.",
     steps: [
       "This is the moment the whole pattern is built around — the urge to say it out loud to someone right now, while it's this loud. That urgency is the pattern, not proof it's necessary.",
@@ -275,7 +288,45 @@ function nav(screen){
   const target = screen === 'log' ? 's-log-history' : `s-${screen}`;
   document.getElementById(target).classList.add('active');
   if(screen === 'log') renderHistory();
-  if(screen === 'home') renderHomeStreak();
+  if(screen === 'keep') renderKeepEntries();
+}
+
+const KEEP_DEFAULT_TAGS = [
+  { id: 'initiated', label: 'Initiated contact' },
+  { id: 'affection', label: 'Physical affection' },
+  { id: 'kind', label: 'Said something kind' },
+  { id: 'easy', label: 'Easy conversation' },
+  { id: 'playful', label: 'Playfulness' },
+  { id: 'chose', label: 'Chose me' }
+];
+
+function renderKeepEntries(){
+  const list = document.getElementById('keep-entry-list');
+  list.innerHTML = '';
+  let entries = [];
+  try{ entries = JSON.parse(localStorage.getItem('keep-entries') || '[]'); } catch(err){ entries = []; }
+  let customTags = [];
+  try{ customTags = JSON.parse(localStorage.getItem('keep-custom-tags') || '[]'); } catch(err){ customTags = []; }
+  const tagLabels = {};
+  KEEP_DEFAULT_TAGS.concat(customTags).forEach(t => tagLabels[t.id] = t.label);
+
+  if(entries.length === 0){
+    list.innerHTML = '<p class="empty-note">Nothing kept yet. Log a good moment in The Keep and it\'ll show up here.</p>';
+    return;
+  }
+  entries.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+    const dateStr = new Date(e.date).toLocaleDateString('en-US', {month:'short', day:'numeric'});
+    div.innerHTML = `
+      <div class="entry-top">
+        <span class="entry-date">${dateStr}</span>
+      </div>
+      <div class="entry-text">${(e.what || '').slice(0,150)}</div>
+      ${e.tags && e.tags.length ? `<div class="entry-tags">${e.tags.map(t => `<span class="entry-tag">${tagLabels[t] || t}</span>`).join('')}</div>` : ''}
+    `;
+    list.appendChild(div);
+  });
 }
 
 document.querySelectorAll('[data-nav]').forEach(el => {
@@ -367,13 +418,6 @@ function computeStreak(entries){
   return streak;
 }
 
-function renderHomeStreak(){
-  const entries = getEntries();
-  const streak = computeStreak(entries);
-  const el = document.getElementById('home-streak');
-  el.innerHTML = `<p class="muted" style="text-align:center;">${streak} day${streak===1?'':'s'} caught in a row</p>`;
-}
-
 function renderHistory(){
   const entries = getEntries();
   document.getElementById('stat-streak').textContent = `${computeStreak(entries)} days`;
@@ -402,8 +446,6 @@ function renderHistory(){
     list.appendChild(div);
   });
 }
-
-renderHomeStreak();
 
 if(!localStorage.getItem('seen-onboarding-pause')){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -475,7 +517,6 @@ document.getElementById('restore-file-input').addEventListener('change', e => {
     try{
       const data = JSON.parse(reader.result);
       if(Array.isArray(data.entries)) localStorage.setItem('spiral-entries', JSON.stringify(data.entries));
-      renderHomeStreak();
       renderHistory();
       alert('Backup restored.');
     } catch(err){
