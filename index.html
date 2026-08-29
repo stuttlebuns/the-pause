@@ -90,9 +90,13 @@
   .btn-primary{ background: var(--sage); color:#132320; }
   .btn-secondary{ background: var(--surface-raised); color: var(--text); border:1px solid var(--line); margin-top:10px; }
 
-  .toggle-row{ display:flex; gap:8px; margin-bottom:16px; }
+  .toggle-row{ display:flex; gap:8px; margin-bottom:0; }
   .toggle-row .opt{ flex:1; text-align:center; padding:12px 8px; font-size:13px; }
   .toggle-row .opt.selected{ border-color: var(--sage); background: var(--sage-dim); color:#0F1B18; }
+
+  .outcome-box{ background: var(--surface-raised); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:16px; }
+  .outcome-box .log-field{ margin-bottom:12px; }
+  .outcome-box .log-field label{ text-align:center; display:block; }
 
   .step-list{ margin:4px 0 10px; padding-left:0; list-style:none; }
   .step-list li{ display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); font-size:15px; }
@@ -190,10 +194,12 @@
       <h1>Right now, try this.</h1>
       <ul class="step-list" id="guide-steps"></ul>
       <div class="spacer"></div>
-      <p class="log-field"><label>Did you catch it, or did it get out?</label></p>
-      <div class="toggle-row">
-        <button class="opt" data-outcome="caught">Caught it internally</button>
-        <button class="opt" data-outcome="reached">Reached out</button>
+      <div class="outcome-box">
+        <p class="log-field"><label>Did you catch it, or did it get out?</label></p>
+        <div class="toggle-row">
+          <button class="opt" data-outcome="caught">Caught it internally</button>
+          <button class="opt" data-outcome="reached">Acted on it</button>
+        </div>
       </div>
       <button class="btn btn-secondary" data-nav="keep" style="margin-bottom:10px;">See kept moments</button>
       <button class="btn btn-primary" id="save-entry">Save and done</button>
@@ -438,7 +444,7 @@ function renderHistory(){
     div.innerHTML = `
       <div class="entry-top">
         <span class="entry-date">${dateStr}</span>
-        <span class="entry-outcome ${e.outcome}">${e.outcome === 'caught' ? 'caught' : 'reached out'}</span>
+        <span class="entry-outcome ${e.outcome}">${e.outcome === 'caught' ? 'caught' : 'acted on it'}</span>
       </div>
       <div class="entry-cat">${CATEGORIES[e.category] ? CATEGORIES[e.category].label : e.category}</div>
       <div class="entry-text">${(e.what || '').slice(0,120)}</div>
@@ -468,7 +474,7 @@ function buildShareText(){
   entries.forEach(e => {
     const dateStr = new Date(e.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
     const catLabel = CATEGORIES[e.category] ? CATEGORIES[e.category].label : e.category;
-    text += `${dateStr} — ${catLabel} — ${e.outcome === 'caught' ? 'caught internally' : 'reached out'}\n`;
+    text += `${dateStr} — ${catLabel} — ${e.outcome === 'caught' ? 'caught internally' : 'acted on it'}\n`;
     if(e.what) text += `${e.what}\n`;
     if(e.told) text += `Telling myself: ${e.told}\n`;
     text += '\n';
