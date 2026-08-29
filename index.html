@@ -131,6 +131,9 @@
   .entry-text{ font-size:13px; color: var(--text-muted); }
   .empty-note{ text-align:center; color: var(--text-muted); font-size:14px; margin-top:40px; }
 
+  .action-row{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .action-row .btn{ font-size:13px; padding:10px 16px; }
+
   @media (max-width:400px){ .app{ padding:24px 18px 20px; } h1{ font-size:23px; } }
 </style>
 </head>
@@ -189,6 +192,12 @@
         <div class="stat-card"><div class="stat-label">This week</div><div class="stat-value" id="stat-week">0 caught</div></div>
       </div>
       <div class="entry-list" id="entry-list"></div>
+      <div class="action-row">
+        <button class="btn btn-secondary" id="share-record">Share the record</button>
+        <button class="btn btn-secondary" id="download-backup">Download backup</button>
+        <button class="btn btn-secondary" id="restore-backup">Restore from backup</button>
+        <input type="file" id="restore-file-input" accept="application/json" style="display:none;">
+      </div>
       <div class="spacer"></div>
       <button class="btn btn-secondary" data-nav="home">Back</button>
     </div>
@@ -389,6 +398,73 @@ renderHomeStreak();
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+function buildShareText(){
+  const entries = getEntries();
+  if(entries.length === 0) return 'The Pause — no entries yet.';
+  let text = "The Pause — a record of caught moments\n\n";
+  entries.forEach(e => {
+    const dateStr = new Date(e.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    const catLabel = CATEGORIES[e.category] ? CATEGORIES[e.category].label : e.category;
+    text += `${dateStr} — ${catLabel} — ${e.outcome === 'caught' ? 'caught internally' : 'reached out'}\n`;
+    if(e.what) text += `${e.what}\n`;
+    if(e.told) text += `Telling myself: ${e.told}\n`;
+    text += '\n';
+  });
+  return text;
+}
+
+document.getElementById('share-record').addEventListener('click', async () => {
+  const text = buildShareText();
+  if(navigator.share){
+    try{ await navigator.share({ title: 'The Pause', text }); }
+    catch(err){ /* cancelled, do nothing */ }
+  } else if(navigator.clipboard){
+    try{
+      await navigator.clipboard.writeText(text);
+      alert('Copied to clipboard — paste it wherever you want to share it.');
+    } catch(err){
+      alert('Could not share automatically. Try the backup download instead.');
+    }
+  }
+});
+
+document.getElementById('download-backup').addEventListener('click', () => {
+  const data = {
+    entries: getEntries(),
+    exportedAt: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `the-pause-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('restore-backup').addEventListener('click', () => {
+  document.getElementById('restore-file-input').click();
+});
+
+document.getElementById('restore-file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(Array.isArray(data.entries)) localStorage.setItem('spiral-entries', JSON.stringify(data.entries));
+      renderHomeStreak();
+      renderHistory();
+      alert('Backup restored.');
+    } catch(err){
+      alert('Could not read that file — make sure it\'s a backup exported from The Pause.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
 </script>
 
 </body>
