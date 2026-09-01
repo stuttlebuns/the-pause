@@ -23,14 +23,13 @@
   }
 
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
-  html,body{margin:0; padding:0; height:100%;}
+  html,body{margin:0; padding:0;}
   body{
     background: radial-gradient(ellipse at 50% -10%, #26332F 0%, var(--bg) 55%);
     color: var(--text);
     font-family:'Inter', system-ui, sans-serif;
     min-height:100vh;
     display:flex;
-    align-items:center;
     justify-content:center;
     padding: 24px 16px;
     line-height:1.5;
@@ -39,7 +38,6 @@
   .app{
     width:100%;
     max-width:440px;
-    min-height:520px;
     background: var(--surface);
     border:1px solid var(--line);
     border-radius:20px;
@@ -124,7 +122,7 @@
   .stat-card .stat-label{ font-family:'Space Mono', monospace; font-size:10px; color: var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; }
   .stat-card .stat-value{ font-family:'Fraunces', serif; font-size:22px; margin-top:4px; }
 
-  .entry-list{ display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1; }
+  .entry-list{ display:flex; flex-direction:column; gap:10px; }
   .entry{ background: var(--surface-raised); border-radius:10px; padding:12px 14px; }
   .entry summary{ list-style:none; cursor:pointer; }
   .entry summary::-webkit-details-marker{ display:none; }
@@ -148,6 +146,13 @@
     font-family:'Space Mono', monospace; font-size:10px; color: var(--gold);
     border:1px solid var(--gold); border-radius:999px; padding:2px 8px;
   }
+
+  .entry-actions{ display:flex; justify-content:flex-end; margin-top:8px; }
+  .entry-share-btn{
+    font-family:'Space Mono', monospace; font-size:11px; color: var(--text-muted);
+    background:none; border:none; padding:4px; letter-spacing:0.03em; cursor:pointer;
+  }
+  .entry-share-btn:active{ color: var(--sage); }
 
   .action-row{ display:flex; flex-direction:column; gap:8px; }
   .action-row .btn{ font-size:13px; padding:10px 16px; }
@@ -461,7 +466,7 @@ function renderHistory(){
     list.innerHTML = '<p class="empty-note">Nothing logged yet.</p>';
     return;
   }
-  entries.forEach(e => {
+  entries.forEach((e, i) => {
     const dateStr = new Date(e.date).toLocaleDateString('en-US', {month:'short', day:'numeric'});
     const hasSecondField = !!(e.told && e.told.trim());
     const summaryHtml = `
@@ -475,23 +480,53 @@ function renderHistory(){
       <div class="entry-cat">${CATEGORIES[e.category] ? CATEGORIES[e.category].label : e.category}</div>
       <div class="entry-text">${(e.what || '').slice(0,300)}</div>
     `;
-    let div;
+    const actionsHtml = `<div class="entry-actions"><button class="entry-share-btn" data-idx="${i}">share this</button></div>`;
+    const div = document.createElement('div');
+    div.className = 'entry';
     if(hasSecondField){
-      div = document.createElement('details');
-      div.className = 'entry';
       div.innerHTML = `
-        <summary class="entry-summary">${summaryHtml}</summary>
-        <div class="entry-body">
-          <div class="entry-felt">Telling myself: ${e.told.slice(0,300)}</div>
-        </div>
+        <details>
+          <summary class="entry-summary">${summaryHtml}</summary>
+          <div class="entry-body">
+            <div class="entry-felt">Telling myself: ${e.told.slice(0,300)}</div>
+          </div>
+        </details>
+        ${actionsHtml}
       `;
     } else {
-      div = document.createElement('div');
-      div.className = 'entry';
-      div.innerHTML = summaryHtml;
+      div.innerHTML = summaryHtml + actionsHtml;
     }
     list.appendChild(div);
   });
+
+  list.querySelectorAll('.entry-share-btn').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const e = entries[parseInt(btn.dataset.idx, 10)];
+      const text = buildSingleEntryText(e);
+      if(navigator.share){
+        try{ await navigator.share({ title: 'The Pause', text }); }
+        catch(err){ /* cancelled, do nothing */ }
+      } else if(navigator.clipboard){
+        try{
+          await navigator.clipboard.writeText(text);
+          alert('Copied to clipboard — paste it wherever you want to share it.');
+        } catch(err){
+          alert('Could not share automatically.');
+        }
+      }
+    });
+  });
+}
+
+function buildSingleEntryText(e){
+  const dateStr = new Date(e.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+  const catLabel = CATEGORIES[e.category] ? CATEGORIES[e.category].label : e.category;
+  let text = `The Pause\n\n${dateStr} — ${catLabel} — ${e.outcome === 'caught' ? 'caught internally' : 'acted on it'}\n`;
+  if(e.what) text += `${e.what}\n`;
+  if(e.told) text += `Telling myself: ${e.told}\n`;
+  return text;
 }
 
 if(!localStorage.getItem('seen-onboarding-pause')){
