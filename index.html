@@ -230,7 +230,7 @@
       <p class="eyebrow">History</p>
       <h1>The record</h1>
       <div class="stat-row">
-        <div class="stat-card"><div class="stat-label">Streak</div><div class="stat-value" id="stat-streak">0 days</div></div>
+        <div class="stat-card"><div class="stat-label">Clean streak</div><div class="stat-value" id="stat-streak">0 days</div></div>
         <div class="stat-card"><div class="stat-label">This week</div><div class="stat-value" id="stat-week">0 caught</div></div>
       </div>
       <div class="entry-list" id="entry-list"></div>
@@ -426,27 +426,27 @@ function getEntries(){
 }
 
 function computeStreak(entries){
-  // streak = consecutive days (most recent backward) with no "reached" outcome
+  // Clean streak = consecutive days (most recent backward) with no "acted on it" outcome.
+  // A day with zero entries counts as clean too (nothing to catch is not a failure) -
+  // only a day containing a "reached" outcome breaks the streak. Stops counting once it
+  // reaches a day before the first entry ever logged, so it doesn't count days before
+  // the app was in use.
+  if(entries.length === 0) return 0;
   const byDay = {};
+  let earliestDay = entries[0].date.slice(0,10);
   entries.forEach(e => {
     const day = e.date.slice(0,10);
     if(!byDay[day]) byDay[day] = [];
     byDay[day].push(e);
+    if(day < earliestDay) earliestDay = day;
   });
   let streak = 0;
   let d = new Date();
   while(true){
     const key = d.toISOString().slice(0,10);
+    if(key < earliestDay) break;
     const dayEntries = byDay[key];
-    if(dayEntries === undefined){
-      // no entries logged that day - stop counting unless it's today (allow today to be empty so far)
-      if(key === new Date().toISOString().slice(0,10)){
-        d.setDate(d.getDate() - 1);
-        continue;
-      }
-      break;
-    }
-    if(dayEntries.some(e => e.outcome === 'reached')) break;
+    if(dayEntries && dayEntries.some(e => e.outcome === 'reached')) break;
     streak++;
     d.setDate(d.getDate() - 1);
   }
